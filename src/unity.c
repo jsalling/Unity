@@ -1264,10 +1264,23 @@ void UnityIgnore(const char* msg, const UNITY_LINE_TYPE line)
     void tearDown(void) { }
 #endif
 /*-----------------------------------------------*/
+extern int UnityListTestsOnly;
 void UnityDefaultTestRun(UnityTestFunction Func, const char* FuncName, const int FuncLineNum)
 {
     Unity.CurrentTestName = FuncName;
     Unity.CurrentTestLineNumber = (UNITY_LINE_TYPE)FuncLineNum;
+#ifdef UNITY_USE_COMMAND_LINE_ARGS
+  if (UnityTestMatches())
+  {
+    if (UnityListTestsOnly)
+    {
+        Unity.NumberOfTests++;
+        UnityTestResultsBegin(Unity.TestFile, FuncLineNum);
+        UNITY_PRINT_EOL();
+    }
+    else
+    {
+#endif
     Unity.NumberOfTests++;
     UNITY_CLR_DETAILS();
     if (TEST_PROTECT())
@@ -1280,6 +1293,10 @@ void UnityDefaultTestRun(UnityTestFunction Func, const char* FuncName, const int
         tearDown();
     }
     UnityConcludeTest();
+#ifdef UNITY_USE_COMMAND_LINE_ARGS
+    }
+  }
+#endif
 }
 
 /*-----------------------------------------------*/
@@ -1306,6 +1323,10 @@ int UnityEnd(void)
     UNITY_PRINT_EOL();
     UnityPrintNumber((UNITY_INT)(Unity.NumberOfTests));
     UnityPrint(UnityStrResultsTests);
+#ifdef UNITY_USE_COMMAND_LINE_ARGS
+  if (UnityListTestsOnly == 0)
+  {
+#endif
     UnityPrintNumber((UNITY_INT)(Unity.TestFailures));
     UnityPrint(UnityStrResultsFailures);
     UnityPrintNumber((UNITY_INT)(Unity.TestIgnores));
@@ -1322,6 +1343,9 @@ int UnityEnd(void)
         UNITY_OUTPUT_CHAR('E'); UNITY_OUTPUT_CHAR('D');
 #endif
     }
+#ifdef UNITY_USE_COMMAND_LINE_ARGS
+  }
+#endif
     UNITY_PRINT_EOL();
     UNITY_FLUSH_CALL();
     UNITY_OUTPUT_COMPLETE();
@@ -1336,6 +1360,7 @@ int UnityEnd(void)
 char* UnityOptionIncludeNamed = NULL;
 char* UnityOptionExcludeNamed = NULL;
 int   UnityVerbosity          = 1;
+int   UnityListTestsOnly      = 0;
 
 int UnityParseOptions(int argc, char** argv)
 {
@@ -1349,7 +1374,8 @@ int UnityParseOptions(int argc, char** argv)
             switch(argv[i][1])
             {
                 case 'l': /* list tests */
-                    return -1;
+                    UnityListTestsOnly = 1;
+                    break;
                 case 'n': /* include tests with name including this string */
                 case 'f': /* an alias for -n */
                     if (argv[i][2] == '=')
@@ -1390,6 +1416,7 @@ int UnityParseOptions(int argc, char** argv)
         }
     }
 
+    if (UnityListTestsOnly == 1) return -1;
     return 0;
 }
 

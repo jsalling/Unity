@@ -311,13 +311,19 @@ void UnityPrintFloat(const UNITY_DOUBLE input_number)
         if (exponent < 10) UNITY_OUTPUT_CHAR('0');
         UnityPrintNumber(exponent);
     }
-    else if (number < (UNITY_DOUBLE)4294967295) /* Rounded result fits in 32 bits, "%.6f" format */
+    else if (number < (UNITY_DOUBLE)4294967295) /* Rounded result fits in 32 bits */
     {
-        const UNITY_INT32 divisor = 1000000;
+        UNITY_INT32 divisor = 1000000;
         UNITY_UINT32 integer_part = (UNITY_UINT32)number;
-        UNITY_INT32 fraction_part = (UNITY_INT32)((number - (UNITY_DOUBLE)integer_part)*1000000.0f + 0.5f);
+        UNITY_INT32 fraction_part;
+
+        if (number < 16.0f) divisor *= 10; /* Add a decimal place */
+        if (number < 2.0f) divisor *= 10;
+        if (number < 1.0f) divisor *= 10;
+
+        fraction_part = (UNITY_INT32)((number - (UNITY_DOUBLE)integer_part)*(UNITY_DOUBLE)divisor + 0.5f);
         /* Double precision calculation gives best performance for six rounded decimal places */
-        ROUND_TIES_TO_EVEN(number, fraction_part, (number - (UNITY_DOUBLE)integer_part)*1000000.0f);
+        ROUND_TIES_TO_EVEN(number, fraction_part, (number - (UNITY_DOUBLE)integer_part)*(UNITY_DOUBLE)divisor);
 
         if (fraction_part == divisor) /* Carry across the decimal point */
         {

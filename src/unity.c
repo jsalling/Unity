@@ -266,7 +266,7 @@ static void UnityPrintDecimalAndNumberWithLeadingZeros(UNITY_INT32 fraction_part
  * The old version required compiling in snprintf. For reference, with a similar format as now:
  *  char buf[19];
  *  if (number > 4294967296.0 || -number > 4294967296.0) snprintf(buf, sizeof buf, "%.8e", number);
- *  else if (number < 0.1 && number > -0.1)              snprintf(buf, sizeof buf, "%.5e", number);
+ *  else if (number < 0.1 && number > -0.1)              snprintf(buf, sizeof buf, "%.8e", number);
  *  else                                                 snprintf(buf, sizeof buf, "%.6f", number);
  *  UnityPrint(buf);
  */
@@ -285,27 +285,27 @@ void UnityPrintFloat(const UNITY_DOUBLE input_number)
     else if (isinf(number)) UnityPrintLen(UnityStrInf, 3);
     else if (number < 0.1f && number > 0)
     {
-        /* Prints only 6 significant digits. */
         int exponent = 0;
         UNITY_INT32 n;
+        const int divisor = 100000000;
 
         /* scale up by powers of 10 */
-        while (number < 100000.0f / 1e6f)  { number *= 1e6f; exponent -= 6; }
-        while (number < 100000.0f)         { number *= 10.0f; exponent--; }
+        while (number < 100000000.0f / 1e10f)  { number *= 1e10f; exponent -= 10; }
+        while (number < 100000000.0f)          { number *= 10.0f; exponent--; }
 
         /* round to nearest integer */
-        n = (UNITY_INT32)(number + 0.5f);
-        if (n > 999999)
+        n = ((UNITY_INT32)(number + number) + 1) / 2;
+        if (n >= divisor * 10)
         {
-            n = 100000;
+            n = divisor;
             exponent++;
         }
 
-        exponent += 5; /* Correct for decimal place */
+        exponent += 8; /* Correct for decimal place */
         exponent = -exponent; /* Exponent is always negative in this scope */
 
-        UNITY_OUTPUT_CHAR('0' + n / 100000);
-        UnityPrintDecimalAndNumberWithLeadingZeros(n % 100000, 100000 / 10);
+        UNITY_OUTPUT_CHAR('0' + n / divisor);
+        UnityPrintDecimalAndNumberWithLeadingZeros(n % divisor, divisor / 10);
         UNITY_OUTPUT_CHAR('e');
         UNITY_OUTPUT_CHAR('-');
         if (exponent < 10) UNITY_OUTPUT_CHAR('0');

@@ -249,7 +249,7 @@ static void UnityPrintDecimalAndNumberWithLeadingZeros(UNITY_INT32 fraction_part
 #ifndef UNITY_ROUND_TIES_AWAY_FROM_ZERO
 /* If rounds up && remainder 0.5 && result odd && below cutoff for double precision issues */
   #define ROUND_TIES_TO_EVEN(orig, num_int, num)                                          \
-  if (num_int > (num) && (num) - (num_int-1) <= 0.5 && (num_int & 1) == 1 && orig < 1e22) \
+  if (num_int > (num) && (num) - (UNITY_DOUBLE)(num_int-1) <= 0.5f && (num_int & 1) == 1 && orig < 1e22) \
     num_int -= 1 /* => a tie to round down to even */
 #else
   #define ROUND_TIES_TO_EVEN(orig, num_int, num) /* Remove macro */
@@ -283,7 +283,7 @@ void UnityPrintFloat(const UNITY_DOUBLE input_number)
 
     if (isnan(number)) UnityPrint(UnityStrNaN);
     else if (isinf(number)) UnityPrintLen(UnityStrInf, 3);
-    else if (number < 0.1 && number > 0)
+    else if (number < 0.1f && number > 0)
     {
         /* Prints only 6 significant digits. */
         int exponent = 0;
@@ -311,36 +311,36 @@ void UnityPrintFloat(const UNITY_DOUBLE input_number)
         if (exponent < 10) UNITY_OUTPUT_CHAR('0');
         UnityPrintNumber(exponent);
     }
-    else if (number < 4294967295.9999995) /* Rounded result fits in 32 bits, "%.6f" format */
+    else if (number < (UNITY_DOUBLE)4294967295) /* Rounded result fits in 32 bits, "%.6f" format */
     {
-        const UNITY_INT32 divisor = 1000000/10;
+        const UNITY_INT32 divisor = 1000000;
         UNITY_UINT32 integer_part = (UNITY_UINT32)number;
-        UNITY_INT32 fraction_part = (UNITY_INT32)((number - (UNITY_DOUBLE)integer_part)*1000000.0 + 0.5);
+        UNITY_INT32 fraction_part = (UNITY_INT32)((number - (UNITY_DOUBLE)integer_part)*1000000.0f + 0.5f);
         /* Double precision calculation gives best performance for six rounded decimal places */
-        ROUND_TIES_TO_EVEN(number, fraction_part, (number - (UNITY_DOUBLE)integer_part)*1000000.0);
+        ROUND_TIES_TO_EVEN(number, fraction_part, (number - (UNITY_DOUBLE)integer_part)*1000000.0f);
 
-        if (fraction_part == 1000000) /* Carry across the decimal point */
+        if (fraction_part == divisor) /* Carry across the decimal point */
         {
             fraction_part = 0;
             integer_part += 1;
         }
 
         UnityPrintNumberUnsigned(integer_part);
-        UnityPrintDecimalAndNumberWithLeadingZeros(fraction_part, divisor);
+        UnityPrintDecimalAndNumberWithLeadingZeros(fraction_part, divisor / 10);
     }
     else /* Number is larger, use exponential format of 9 digits, "%.8e" */
     {
         const UNITY_INT32 divisor = 1000000000/10;
         UNITY_INT32 integer_part;
-        UNITY_DOUBLE_TYPE divide = 10.0;
+        UNITY_DOUBLE divide = 10.0f;
         int exponent = 9;
 
-        while (number / divide >= 1000000000.0 - 0.5)
+        while (number / divide >= 1000000000.0f - 0.5f)
         {
             divide *= 10;
             exponent++;
         }
-        integer_part = (UNITY_INT32)(number / divide + 0.5);
+        integer_part = (UNITY_INT32)(number / divide + 0.5f);
         /* Double precision calculation required for float, to produce 9 rounded digits */
         ROUND_TIES_TO_EVEN(number, integer_part, number / divide);
 
